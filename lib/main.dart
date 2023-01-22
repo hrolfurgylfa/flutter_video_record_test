@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
@@ -14,6 +15,11 @@ Future<void> main() async {
   final cameras = await availableCameras();
 
   // Get a specific camera from the list of available cameras.
+  if (cameras.isEmpty) {
+    log("No camera found on device.", level: 2000);
+    return;
+  }
+
   final firstCamera = cameras.first;
 
   runApp(
@@ -43,7 +49,7 @@ class TakePictureScreen extends StatefulWidget {
 class TakePictureScreenState extends State<TakePictureScreen> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
-  late bool _isRecording = false;
+  late ValueNotifier<bool> _isRecording;
 
   @override
   void initState() {
@@ -56,6 +62,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
       // Define the resolution to use.
       ResolutionPreset.medium,
     );
+    _isRecording = ValueNotifier<bool>(false);
 
     // Next, initialize the controller. This returns a Future.
     _initializeControllerFuture = _controller.initialize();
@@ -93,19 +100,19 @@ class TakePictureScreenState extends State<TakePictureScreen> {
           // Take the Picture in a try / catch block. If anything goes wrong,
           // catch the error.
           try {
-            if (!_isRecording) {
+            if (!_isRecording.value) {
               // Ensure that the camera is initialized.
               await _initializeControllerFuture;
 
               // Attempt to take a picture and get the file `image`
               // where it was saved.
               await _controller.startVideoRecording();
-              _isRecording = true;
+              _isRecording.value = true;
             } else {
               if (!mounted) return;
 
               // If the picture was taken, display it on a new screen.
-              _isRecording = false;
+              _isRecording.value = false;
               final video = await _controller.stopVideoRecording();
               print(video.path);
               final File file = File(video.path);
@@ -125,7 +132,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
             print(e);
           }
         },
-        child: const Icon(Icons.camera_alt),
+        child: Icon(_isRecording.value ? Icons.stop : Icons.camera_alt),
       ),
     );
   }
